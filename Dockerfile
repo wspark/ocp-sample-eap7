@@ -1,56 +1,27 @@
-FROM registry.redhat.io/jboss-webserver-3/webserver31-tomcat7-openshift
-#FROM tomcat7-base:latest
+FROM bastion.ps.example.com:5000/jboss-eap-7/eap73-openjdk8-openshift-rhel7:latest
 
-ARG TOMCAT_PATH=/opt/webserver    
 USER root
 
-RUN mkdir -p /app /logs/was 
-#RUN useradd -u 185 -G root tomcat
-
-# RUN yum -y update \
-# RUN yum -y install openssh-clients.x86_64   
-
 RUN ln -sf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
-#RUN rm -rf /opt/webserver/bin/catalina.sh
-#RUN rm -rf /opt/run-java/java-default-options
-#RUN rm -rf $CATALINE_HOME/lib/log4j.properties  
-  
-RUN rm -rf ${TOMCAT_PATH}/conf/server.xml
-RUN rm -rf ${TOMCAT_PATH}/conf/log4j.properties
-RUN rm -rf ${TOMCAT_PATH}/conf/web.xml
-#ARG TOMCAT_PATH=/usr/local/tomcat/apache-tomcat-7.0.62
-   
-# Lib
-COPY mysql-connector-java-commercial-5.1.29-bin.jar ${TOMCAT_PATH}/lib/
-COPY postgresql-42.2.9.jar ${TOMCAT_PATH}/lib/
+#ENV JAVA_OPTS_APPEND="-Djboss.modules.system.pkgs=org.jboss.byteman,org.jboss.logmanager -Djava.net.preferIPv4Stack=true -Dfile.encoding=UTF-8 "
 
-# app
-#ADD files/webapps/simple /app/simple
+ADD files/              /tmp
 
-# conf
-COPY server.xml ${TOMCAT_PATH}/conf/
-COPY web.xml ${TOMCAT_PATH}/conf/
-COPY log4j.properties ${TOMCAT_PATH}/lib/
+WORKDIR /tmp
 
-# for valut
-COPY files/vault/tomcat-vault.jar ${TOMCAT_PATH}/lib/
-COPY files/vault/catalina.properties ${TOMCAT_PATH}/conf/
-COPY files/vault/vault.properties ${TOMCAT_PATH}/conf/
-COPY files/vault/crm.keystore ${TOMCAT_PATH}/conf/
-COPY files/vault/VAULT.dat ${TOMCAT_PATH}/conf/
+RUN cp deployments/simple.war                 /deployments/                        
 
-# Direcotry Permission
-RUN chmod 777 /logs /app/ -R \
-  && chown -R 185:root /app/ /logs/
-     
-# App 복사
-#ADD files/webapps/simple ${TOMCAT_PATH}/webapps/simple
-#ADD files/webapps/web ${TOMCAT_PATH}/webapps/web
-#ADD files/webapps/web2 ${TOMCAT_PATH}/webapps/web2
+WORKDIR /opt/eap
 
-# Allow arbitrary
+#RUN mv -f rockplace-launch.sh /opt/eap/bin/launch/  \
+# && mv -f standalone-openshift.xml /opt/eap/standalone/configuration/  \
+# && mv -f modules.ext/com/mysql/8.0.16 /opt/eap/modules/system/layers/openshift/com/mysql/  \
+# && mv -f modules.ext/com/oracle /opt/eap/modules/system/layers/openshift/com/    \
+#RUN sed -i "4i\source $JBOSS_HOME/bin/launch/rockplace-launch.sh"  /opt/eap/bin/openshift-launch.sh \
+# && chmod 664 /opt/eap/bin/launch/rockplace-launch.sh
+
+RUN mkdir -p /app /logs            \
+ && chown -R 185.root /app /logs /opt/eap  \
+ && chmod -R 775 /app  /logs     
+
 USER 185
-  
-EXPOSE 8080
-   
-#ENTRYPOINT ["catalina.sh", "run"]
